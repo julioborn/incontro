@@ -19,6 +19,7 @@ export interface Venue {
   open_time: string | null;
   close_time: string | null;
   logo_url: string | null;
+  is_open: boolean;
   created_at: string;
 }
 export type VenueInsert = Omit<Venue, "id" | "created_at">;
