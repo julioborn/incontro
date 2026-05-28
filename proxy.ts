@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const publicPaths = ["/", "/login", "/register", "/auth/callback", "/api/auth"];
+  const publicPaths = ["/", "/login", "/register", "/auth/callback", "/completar-perfil", "/api/auth"];
   if (publicPaths.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }

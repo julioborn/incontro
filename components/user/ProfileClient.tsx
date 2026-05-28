@@ -74,6 +74,15 @@ export function ProfileClient({ profileId, currentUserId }: Props) {
   const displayName = profile?.name ?? profile?.first_name ?? "Sin nombre";
   const initial = displayName[0]?.toUpperCase() ?? "?";
 
+  function calcAge(birthDate: string | null): number | null {
+    if (!birthDate) return null;
+    const b = new Date(birthDate);
+    const today = new Date();
+    return today.getFullYear() - b.getFullYear() -
+      (today < new Date(today.getFullYear(), b.getMonth(), b.getDate()) ? 1 : 0);
+  }
+  const age = calcAge(profile?.birth_date ?? null);
+
   return (
     <div className="flex flex-col min-h-screen bg-black pb-24">
       {/* Avatar */}
@@ -100,7 +109,7 @@ export function ProfileClient({ profileId, currentUserId }: Props) {
         {!editing ? (
           <>
             <h1 className="text-xl font-bold text-white">{displayName}</h1>
-            {profile?.age && <p className="text-white/40 text-sm mt-0.5">{profile.age} años</p>}
+            {age !== null && <p className="text-white/40 text-sm mt-0.5">{age} años</p>}
             {profile?.email && <p className="text-white/30 text-xs mt-1">{profile.email}</p>}
           </>
         ) : (

@@ -62,9 +62,13 @@ export function UserCard({ profile, currentUserId, venueId }: Props) {
       {/* Info */}
       <Link href={`/profile/${profile.id}`} className="flex-1 min-w-0">
         <p className="text-white text-sm font-semibold truncate">{displayName}</p>
-        {profile.age && (
-          <p className="text-white/40 text-xs mt-0.5">{profile.age} años</p>
-        )}
+        {profile.birth_date && (() => {
+          const b = new Date(profile.birth_date!);
+          const today = new Date();
+          const a = today.getFullYear() - b.getFullYear() -
+            (today < new Date(today.getFullYear(), b.getMonth(), b.getDate()) ? 1 : 0);
+          return <p className="text-white/40 text-xs mt-0.5">{a} años</p>;
+        })()}
       </Link>
 
       {/* Like / Match */}

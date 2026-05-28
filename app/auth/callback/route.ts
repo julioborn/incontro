@@ -30,10 +30,12 @@ export async function GET(req: NextRequest) {
 
     if (data.user) {
       const { id, email, user_metadata } = data.user;
+      const fullName = user_metadata?.full_name ?? user_metadata?.name ?? null;
+      const avatar = user_metadata?.avatar_url ?? user_metadata?.picture ?? null;
 
       const { data: existing } = await supabaseAdmin
         .from("profiles")
-        .select("id")
+        .select("id, username, birth_date")
         .eq("id", id)
         .single();
 
@@ -41,16 +43,23 @@ export async function GET(req: NextRequest) {
         await supabaseAdmin.from("profiles").insert({
           id,
           email: email ?? null,
-          name: user_metadata?.full_name ?? user_metadata?.name ?? null,
+          name: fullName,
           first_name: user_metadata?.given_name ?? null,
           last_name: user_metadata?.family_name ?? null,
-          avatar_url: user_metadata?.avatar_url ?? user_metadata?.picture ?? null,
+          avatar_url: avatar,
         });
+        return NextResponse.redirect(`${origin}/completar-perfil`);
       } else {
-        // Actualizar avatar si cambió
+        // Actualizar nombre y avatar en cada login
         await supabaseAdmin.from("profiles").update({
-          avatar_url: user_metadata?.avatar_url ?? user_metadata?.picture ?? null,
+          name: fullName ?? existing.username,
+          avatar_url: avatar,
         }).eq("id", id);
+
+        // Si falta username o fecha de nacimiento → completar perfil
+        if (!existing.username || !existing.birth_date) {
+          return NextResponse.redirect(`${origin}/completar-perfil`);
+        }
       }
     }
   }
