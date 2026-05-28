@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { supabaseClient } from "@/lib/supabase";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,13 +16,20 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const result = await signIn("credentials", { email, password, redirect: false });
+    const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (result?.error) {
+    if (signInError) {
       setError("Email o contraseña incorrectos.");
     } else {
       router.push("/home");
     }
+  }
+
+  async function handleGoogle() {
+    await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   }
 
   return (
@@ -73,7 +80,7 @@ export default function LoginPage() {
         </div>
 
         <button
-          onClick={() => signIn("google", { callbackUrl: "/home" })}
+          onClick={handleGoogle}
           className="w-full py-3 rounded-xl text-sm font-semibold text-white border flex items-center justify-center gap-2 transition-colors hover:bg-white/5"
           style={{ borderColor: "rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
         >
