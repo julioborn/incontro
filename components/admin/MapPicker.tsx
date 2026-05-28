@@ -46,20 +46,20 @@ export function MapPicker({ lat, lng, radius, onChange }: Props) {
         maxZoom: 22,
       });
 
-      // Satélite Esri — maxNativeZoom 19, el mapa escala los tiles por encima de eso
+      // Satélite Google — cobertura global a zoom muy alto
       L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
         {
-          attribution: "Esri",
+          attribution: "Google",
           maxZoom: 22,
-          maxNativeZoom: 19,
+          maxNativeZoom: 21,
         }
       ).addTo(map);
 
-      // Capa de etiquetas encima del satélite para orientarse
+      // Etiquetas de calles encima del satélite
       L.tileLayer(
-        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-        { maxZoom: 22, maxNativeZoom: 19, opacity: 0.7 }
+        "https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}",
+        { maxZoom: 22, maxNativeZoom: 21, opacity: 0.8 }
       ).addTo(map);
 
       const marker = L.marker(center, { draggable: true }).addTo(map);
