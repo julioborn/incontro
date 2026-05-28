@@ -19,9 +19,20 @@ export function useGeolocation(userId: string | null) {
     isInsideVenue: false, distance: null, activeVenue: null,
   });
 
-  const watchIdRef = useRef<number | null>(null);
+  const watchIdRef    = useRef<number | null>(null);
   const presenceIdRef = useRef<string | null>(null);
-  const wasInsideRef = useRef<boolean>(false);
+  const wasInsideRef  = useRef<boolean>(false);
+  const venuesRef     = useRef<Venue[]>([]);         // cache local de venues
+  const lastVenueFetchRef = useRef<number>(0);
+
+  // Carga venues y los cachea; refetch cada 60s
+  const loadVenues = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastVenueFetchRef.current < 60_000 && venuesRef.current.length > 0) return;
+    const { data } = await supabaseClient.from("venues").select("*");
+    if (data) venuesRef.current = data as Venue[];
+    lastVenueFetchRef.current = now;
+  }, []);
 
   const deactivatePresence = useCallback(async () => {
     if (!presenceIdRef.current || !userId) return;
@@ -51,8 +62,10 @@ export function useGeolocation(userId: string | null) {
   const checkLocation = useCallback(async (coords: GeolocationCoordinates) => {
     if (!userId) return;
 
-    const { data: venues } = await supabaseClient.from("venues").select("*");
-    if (!venues || venues.length === 0) {
+    await loadVenues();
+    const venues = venuesRef.current;
+
+    if (!venues.length) {
       if (wasInsideRef.current) await deactivatePresence();
       setState(s => ({ ...s, isInsideVenue: false, distance: null, activeVenue: null, isLoading: false }));
       return;
@@ -61,7 +74,7 @@ export function useGeolocation(userId: string | null) {
     // Encontrar el venue más cercano
     let nearest: Venue | null = null;
     let minDist = Infinity;
-    for (const venue of venues as Venue[]) {
+    for (const venue of venues) {
       const d = haversineDistance(coords.latitude, coords.longitude, venue.lat, venue.lng);
       if (d < minDist) { minDist = d; nearest = venue; }
     }
@@ -71,19 +84,13 @@ export function useGeolocation(userId: string | null) {
       : false;
 
     if (inside && nearest) {
-      // Entró o sigue dentro
-      if (!wasInsideRef.current) {
-        await activatePresence(nearest);
-      }
+      if (!wasInsideRef.current) await activatePresence(nearest);
       setState(s => ({ ...s, isInsideVenue: true, distance: minDist, activeVenue: nearest, isLoading: false, error: null }));
     } else {
-      // Salió o está afuera
-      if (wasInsideRef.current) {
-        await deactivatePresence();
-      }
+      if (wasInsideRef.current) await deactivatePresence();
       setState(s => ({ ...s, isInsideVenue: false, distance: minDist === Infinity ? null : minDist, activeVenue: null, isLoading: false, error: null }));
     }
-  }, [userId, activatePresence, deactivatePresence]);
+  }, [userId, loadVenues, activatePresence, deactivatePresence]);
 
   useEffect(() => {
     if (!userId) return;
@@ -92,6 +99,9 @@ export function useGeolocation(userId: string | null) {
       setState(s => ({ ...s, error: "Geolocation not supported", isLoading: false }));
       return;
     }
+
+    // Forzar carga inicial de venues
+    loadVenues();
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
@@ -102,13 +112,20 @@ export function useGeolocation(userId: string | null) {
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
 
+    // Suscripción en tiempo real a cambios de venues (zona, radio, etc.)
+    const channel = supabaseClient
+      .channel("venues-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "venues" }, () => {
+        lastVenueFetchRef.current = 0; // forzar refetch en próximo GPS update
+      })
+      .subscribe();
+
     return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      supabaseClient.removeChannel(channel);
       deactivatePresence();
     };
-  }, [userId, checkLocation, deactivatePresence]);
+  }, [userId, checkLocation, loadVenues, deactivatePresence]);
 
   return state;
 }
