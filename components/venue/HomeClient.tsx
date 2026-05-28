@@ -17,7 +17,7 @@ export function HomeClient({ userId }: Props) {
     <div className="flex flex-col min-h-screen bg-black">
       {/* Header */}
       <header className="flex items-center justify-between px-5 pt-safe-top pt-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <Image src="/incontro-banner.png" alt="Incontro" width={110} height={34} className="object-contain" />
+        <span className="text-lg font-bold tracking-[0.12em] text-white">Incontro</span>
         {activeVenue && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
