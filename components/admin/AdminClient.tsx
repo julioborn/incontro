@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Venue } from "@/lib/supabase";
@@ -9,8 +9,22 @@ const DAYS_ES: Record<string, string> = {
   thursday: "Jue", friday: "Vie", saturday: "Sáb", sunday: "Dom",
 };
 
+const RADIUS_LABELS: Record<number, string> = {
+  50:  "50m — Local muy pequeño o céntrico",
+  100: "100m — Tamaño estándar (recomendado)",
+  150: "150m — Local grande",
+  200: "200m — Con estacionamiento o fila afuera",
+  300: "300m — Predio o complejo",
+};
+
 const inputStyle = { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" };
 const labelStyle = { color: "rgba(255,255,255,0.45)" };
+
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+}
 
 export function AdminClient() {
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -20,16 +34,49 @@ export function AdminClient() {
   const [saving, setSaving] = useState(false);
   const [inviteResult, setInviteResult] = useState<{ email: string; tempPassword: string } | null>(null);
 
+  // Formulario
   const [form, setForm] = useState({
-    name: "", address: "", lat: "", lng: "",
-    radius_meters: "100", open_time: "22:00", close_time: "06:00",
+    name: "", address: "", lat: 0, lng: 0,
+    radius_meters: 100, open_time: "22:00", close_time: "06:00",
     open_days: [] as string[],
   });
+
+  // Buscador de dirección
+  const [addressQuery, setAddressQuery] = useState("");
+  const [addressResults, setAddressResults] = useState<NominatimResult[]>([]);
+  const [searchingAddress, setSearchingAddress] = useState(false);
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [inviteEmail, setInviteEmail] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/locals").then(r => r.json()).then(d => { setVenues(Array.isArray(d) ? d : []); setLoading(false); });
+    fetch("/api/admin/locals")
+      .then(r => r.json())
+      .then(d => { setVenues(Array.isArray(d) ? d : []); setLoading(false); });
   }, []);
+
+  function onAddressInput(val: string) {
+    setAddressQuery(val);
+    setForm(f => ({ ...f, address: val, lat: 0, lng: 0 }));
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (val.length < 4) { setAddressResults([]); return; }
+    searchTimeout.current = setTimeout(async () => {
+      setSearchingAddress(true);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&addressdetails=1`,
+        { headers: { "Accept-Language": "es" } }
+      );
+      const data: NominatimResult[] = await res.json();
+      setAddressResults(data);
+      setSearchingAddress(false);
+    }, 600);
+  }
+
+  function selectAddress(result: NominatimResult) {
+    setAddressQuery(result.display_name);
+    setForm(f => ({ ...f, address: result.display_name, lat: parseFloat(result.lat), lng: parseFloat(result.lon) }));
+    setAddressResults([]);
+  }
 
   function toggleDay(day: string) {
     setForm(f => ({
@@ -44,12 +91,15 @@ export function AdminClient() {
     const res = await fetch("/api/admin/locals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, lat: parseFloat(form.lat), lng: parseFloat(form.lng), radius_meters: parseInt(form.radius_meters) }),
+      body: JSON.stringify(form),
     });
     const data = await res.json();
-    setVenues(v => [...v, data]);
-    setShowForm(false);
-    setForm({ name: "", address: "", lat: "", lng: "", radius_meters: "100", open_time: "22:00", close_time: "06:00", open_days: [] });
+    if (data.id) {
+      setVenues(v => [...v, data]);
+      setShowForm(false);
+      setForm({ name: "", address: "", lat: 0, lng: 0, radius_meters: 100, open_time: "22:00", close_time: "06:00", open_days: [] });
+      setAddressQuery("");
+    }
     setSaving(false);
   }
 
@@ -64,7 +114,11 @@ export function AdminClient() {
     });
     const data = await res.json();
     setSaving(false);
-    if (data.ok) { setInviteResult({ email: inviteEmail, tempPassword: data.tempPassword }); setShowInvite(null); setInviteEmail(""); }
+    if (data.ok) {
+      setInviteResult({ email: inviteEmail, tempPassword: data.tempPassword });
+      setShowInvite(null);
+      setInviteEmail("");
+    }
   }
 
   return (
@@ -79,9 +133,10 @@ export function AdminClient() {
       </header>
 
       <main className="flex-1 px-5 py-6">
-        {/* Establecimientos */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white font-semibold">Establecimientos <span className="text-white/30 text-sm">({venues.length})</span></h2>
+          <h2 className="text-white font-semibold">
+            Establecimientos <span className="text-white/30 text-sm">({venues.length})</span>
+          </h2>
           <button
             onClick={() => setShowForm(!showForm)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white"
@@ -91,35 +146,85 @@ export function AdminClient() {
           </button>
         </div>
 
-        {/* Formulario nuevo local */}
+        {/* Formulario */}
         {showForm && (
-          <div className="rounded-2xl p-4 mb-5 flex flex-col gap-3" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-            <p className="text-white text-sm font-semibold mb-1">Nuevo establecimiento</p>
-            {[
-              { label: "Nombre", key: "name", placeholder: "Ej: Club Niceto" },
-              { label: "Dirección", key: "address", placeholder: "Niceto Vega 5510, CABA" },
-              { label: "Latitud", key: "lat", placeholder: "-34.5897" },
-              { label: "Longitud", key: "lng", placeholder: "-58.4263" },
-              { label: "Radio (metros)", key: "radius_meters", placeholder: "100" },
-            ].map(({ label, key, placeholder }) => (
-              <div key={key}>
-                <label className="block text-xs mb-1 uppercase tracking-wider" style={labelStyle}>{label}</label>
+          <div className="rounded-2xl p-4 mb-5 flex flex-col gap-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <p className="text-white text-sm font-semibold">Nuevo establecimiento</p>
+
+            {/* Nombre */}
+            <div>
+              <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>Nombre</label>
+              <input
+                value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: Club Niceto"
+                className="w-full px-3 py-2.5 rounded-xl text-white text-sm outline-none focus:border-[#8296E3]"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Búsqueda de dirección */}
+            <div className="relative">
+              <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>Dirección</label>
+              <div className="relative">
                 <input
-                  value={form[key as keyof typeof form] as string}
-                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  placeholder={placeholder}
-                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm outline-none"
+                  value={addressQuery}
+                  onChange={e => onAddressInput(e.target.value)}
+                  placeholder="Buscá el establecimiento..."
+                  className="w-full px-3 py-2.5 rounded-xl text-white text-sm outline-none pr-8"
                   style={inputStyle}
                 />
+                {searchingAddress && (
+                  <div className="absolute right-3 top-3 w-4 h-4 rounded-full border-2 border-[#8296E3] border-t-transparent animate-spin" />
+                )}
               </div>
-            ))}
 
+              {/* Resultados */}
+              {addressResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 rounded-xl overflow-hidden" style={{ background: "#111", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  {addressResults.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => selectAddress(r)}
+                      className="w-full text-left px-4 py-3 text-xs text-white/80 hover:bg-white/5 transition-colors"
+                      style={{ borderBottom: i < addressResults.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none" }}
+                    >
+                      {r.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Confirmación de coords */}
+              {form.lat !== 0 && (
+                <p className="text-xs mt-1.5" style={{ color: "#4ade80" }}>
+                  ✓ Ubicación detectada: {form.lat.toFixed(5)}, {form.lng.toFixed(5)}
+                </p>
+              )}
+            </div>
+
+            {/* Radio con slider */}
+            <div>
+              <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>
+                Radio de detección
+              </label>
+              <input
+                type="range" min="50" max="300" step="50"
+                value={form.radius_meters}
+                onChange={e => setForm(f => ({ ...f, radius_meters: parseInt(e.target.value) }))}
+                className="w-full accent-[#8296E3]"
+              />
+              <p className="text-xs mt-1" style={{ color: "#8296E3" }}>
+                {RADIUS_LABELS[form.radius_meters]}
+              </p>
+            </div>
+
+            {/* Horarios */}
             <div className="grid grid-cols-2 gap-3">
               {[{ label: "Abre", key: "open_time" }, { label: "Cierra", key: "close_time" }].map(({ label, key }) => (
                 <div key={key}>
-                  <label className="block text-xs mb-1 uppercase tracking-wider" style={labelStyle}>{label}</label>
+                  <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>{label}</label>
                   <input
-                    type="time" value={form[key as keyof typeof form] as string}
+                    type="time" value={form[key as "open_time" | "close_time"]}
                     onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl text-white text-sm outline-none"
                     style={{ ...inputStyle, colorScheme: "dark" }}
@@ -128,6 +233,7 @@ export function AdminClient() {
               ))}
             </div>
 
+            {/* Días */}
             <div>
               <label className="block text-xs mb-2 uppercase tracking-wider" style={labelStyle}>Días</label>
               <div className="flex flex-wrap gap-2">
@@ -146,15 +252,22 @@ export function AdminClient() {
             </div>
 
             <div className="flex gap-3 mt-1">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl text-sm text-white/50" style={inputStyle}>Cancelar</button>
-              <button onClick={handleCreate} disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50" style={{ background: "linear-gradient(135deg, #8296E3, #4762C7)" }}>
+              <button onClick={() => { setShowForm(false); setAddressQuery(""); setAddressResults([]); }} className="flex-1 py-2.5 rounded-xl text-sm text-white/50" style={inputStyle}>
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreate}
+                disabled={saving || !form.name || !form.lat}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #8296E3, #4762C7)" }}
+              >
                 {saving ? "Creando..." : "Crear"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Lista de locales */}
+        {/* Lista */}
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 rounded-full border-2 border-[#8296E3] border-t-transparent animate-spin" />
@@ -165,27 +278,22 @@ export function AdminClient() {
           <div className="flex flex-col gap-3">
             {venues.map(venue => (
               <div key={venue.id} className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="text-white font-semibold">{venue.name}</p>
-                    {venue.address && <p className="text-white/40 text-xs mt-0.5">{venue.address}</p>}
+                    {venue.address && <p className="text-white/40 text-xs mt-0.5 leading-relaxed">{venue.address}</p>}
                     <p className="text-white/30 text-xs mt-1">
                       {venue.open_time?.slice(0, 5)} – {venue.close_time?.slice(0, 5)}
-                      {venue.open_days && venue.open_days.length > 0 && (
-                        <span className="ml-2">{venue.open_days.map(d => DAYS_ES[d]).join(", ")}</span>
-                      )}
+                      {" · "}{venue.radius_meters}m
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${venue.is_open ? "bg-green-400" : "bg-white/20"}`} />
-                    <span className="text-xs" style={{ color: venue.is_open ? "#4ade80" : "rgba(255,255,255,0.3)" }}>
-                      {venue.is_open ? "Abierto" : "Cerrado"}
-                    </span>
-                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${venue.is_open ? "text-green-400 bg-green-400/10" : "text-white/30 bg-white/5"}`}>
+                    {venue.is_open ? "Abierto" : "Cerrado"}
+                  </span>
                 </div>
                 <button
                   onClick={() => setShowInvite(venue.id)}
-                  className="mt-3 w-full py-2 rounded-xl text-xs font-medium text-white/70 transition-colors hover:text-white"
+                  className="w-full py-2 rounded-xl text-xs font-medium text-white/60 hover:text-white transition-colors"
                   style={inputStyle}
                 >
                   Asignar administrador
@@ -195,7 +303,7 @@ export function AdminClient() {
           </div>
         )}
 
-        {/* Resultado de invitación */}
+        {/* Resultado invitación */}
         {inviteResult && (
           <div className="mt-4 rounded-2xl p-4" style={{ background: "rgba(130,150,227,0.1)", border: "1px solid rgba(130,150,227,0.3)" }}>
             <p className="text-[#8296E3] text-sm font-semibold mb-2">✓ Cuenta creada</p>
@@ -207,7 +315,7 @@ export function AdminClient() {
         )}
       </main>
 
-      {/* Modal invitar admin */}
+      {/* Modal invitar */}
       {showInvite && (
         <div className="fixed inset-0 flex items-end justify-center z-50" style={{ background: "rgba(0,0,0,0.7)" }}>
           <div className="w-full max-w-sm rounded-t-3xl p-6" style={{ background: "#0a0a0a", border: "1px solid rgba(255,255,255,0.08)" }}>
