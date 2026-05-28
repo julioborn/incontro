@@ -1,36 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/lib/supabase.server";
-import { requireRole } from "@/lib/roles";
+import { getUserRole } from "@/lib/roles";
 import { supabaseAdmin } from "@/lib/supabase.admin";
 
 export async function GET() {
-  const session = await getServerSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await requireRole(session.user.id, ["superadmin"]);
+  try {
+    const session = await getServerSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data, error } = await supabaseAdmin
-    .from("venues")
-    .select("*, admin:profiles!venues_id_fkey(id, name, email)")
-    .order("name");
+    const role = await getUserRole(session.user.id);
+    if (role !== "superadmin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    const { data, error } = await supabaseAdmin
+      .from("venues")
+      .select("*")
+      .order("name");
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data ?? []);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  await requireRole(session.user.id, ["superadmin"]);
+  try {
+    const session = await getServerSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
-  const { name, address, lat, lng, radius_meters, open_days, open_time, close_time } = body;
+    const role = await getUserRole(session.user.id);
+    if (role !== "superadmin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data, error } = await supabaseAdmin
-    .from("venues")
-    .insert({ name, address, lat, lng, radius_meters: radius_meters ?? 100, open_days, open_time, close_time })
-    .select()
-    .single();
+    const body = await req.json();
+    const { name, address, lat, lng, radius_meters, open_days, open_time, close_time } = body;
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+    const { data, error } = await supabaseAdmin
+      .from("venues")
+      .insert({ name, address, lat, lng, radius_meters: radius_meters ?? 100, open_days, open_time, close_time })
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }

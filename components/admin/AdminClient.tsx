@@ -28,7 +28,7 @@ export function AdminClient() {
   const [inviteEmail, setInviteEmail] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/locals").then(r => r.json()).then(d => { setVenues(d); setLoading(false); });
+    fetch("/api/admin/locals").then(r => r.json()).then(d => { setVenues(Array.isArray(d) ? d : []); setLoading(false); });
   }, []);
 
   function toggleDay(day: string) {
