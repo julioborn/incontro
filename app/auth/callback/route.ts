@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient, type CookieOptions } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { supabaseAdmin } from "@/lib/supabase.admin";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -13,17 +14,38 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
-          set(name: string, value: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value, ...options }); } catch {}
-          },
-          remove(name: string, options: CookieOptions) {
-            try { cookieStore.set({ name, value: "", ...options }); } catch {}
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
           },
         },
       }
     );
-    await supabase.auth.exchangeCodeForSession(code);
+
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (data.user) {
+      const { id, user_metadata } = data.user;
+      // Crear perfil si no existe
+      const { data: existing } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("id", id)
+        .single();
+
+      if (!existing) {
+        const fullName = user_metadata?.full_name ?? user_metadata?.name ?? null;
+        await supabaseAdmin.from("profiles").insert({
+          id,
+          name: fullName,
+          avatar_url: user_metadata?.avatar_url ?? null,
+        });
+      }
+    }
   }
 
   return NextResponse.redirect(`${origin}/home`);

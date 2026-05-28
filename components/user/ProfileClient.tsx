@@ -9,18 +9,39 @@ interface Props { profileId: string; currentUserId: string }
 
 export function ProfileClient({ profileId, currentUserId }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
   const isOwn = profileId === "me" || profileId === currentUserId;
+  const resolvedId = profileId === "me" ? currentUserId : profileId;
 
   useEffect(() => {
-    const id = profileId === "me" ? currentUserId : profileId;
-    supabaseClient.from("profiles").select("*").eq("id", id).single()
-      .then(({ data }) => setProfile(data));
-  }, [profileId, currentUserId]);
+    supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", resolvedId)
+      .single()
+      .then(({ data }) => {
+        setProfile(data);
+        setLoading(false);
+      });
+  }, [resolvedId]);
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="w-8 h-8 rounded-full border-2 border-[#8296E3] border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black gap-3">
+        <span className="text-4xl">👤</span>
+        <p className="text-white font-medium">Perfil no encontrado</p>
+        <p className="text-white/40 text-sm text-center px-8">
+          Completá tu perfil para que otros te puedan ver.
+        </p>
+        <BottomNav />
       </div>
     );
   }
