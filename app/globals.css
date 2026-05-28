@@ -30,6 +30,10 @@ html, body {
   box-sizing: border-box;
 }
 
+button, a, [role="button"], label[for], label.cursor-pointer {
+  cursor: pointer;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
