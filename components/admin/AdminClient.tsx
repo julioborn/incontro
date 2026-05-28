@@ -2,7 +2,14 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import type { Venue } from "@/lib/supabase";
+
+const MapPicker = dynamic(() => import("./MapPicker").then(m => m.MapPicker), { ssr: false, loading: () => (
+  <div className="w-full h-[260px] rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+    <div className="w-6 h-6 rounded-full border-2 border-[#8296E3] border-t-transparent animate-spin" />
+  </div>
+) });
 
 const DAYS_ES: Record<string, string> = {
   monday: "Lun", tuesday: "Mar", wednesday: "Mié",
@@ -10,12 +17,22 @@ const DAYS_ES: Record<string, string> = {
 };
 
 const RADIUS_LABELS: Record<number, string> = {
-  50:  "50m — Local muy pequeño o céntrico",
+  10:  "10m — Zona muy precisa (interior exacto)",
+  20:  "20m — Mesa o barra específica",
+  30:  "30m — Local pequeño",
+  50:  "50m — Local mediano o céntrico",
+  75:  "75m — Local con patio o terraza",
   100: "100m — Tamaño estándar (recomendado)",
   150: "150m — Local grande",
   200: "200m — Con estacionamiento o fila afuera",
   300: "300m — Predio o complejo",
 };
+
+function getRadiusLabel(val: number): string {
+  const keys = Object.keys(RADIUS_LABELS).map(Number).sort((a, b) => a - b);
+  const closest = keys.reduce((prev, curr) => Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev);
+  return RADIUS_LABELS[closest] ?? `${val}m`;
+}
 
 const inputStyle = { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" };
 const labelStyle = { color: "rgba(255,255,255,0.45)" };
@@ -274,19 +291,32 @@ export function AdminClient() {
               )}
             </div>
 
+            {/* Mapa satelital */}
+            {form.lat !== 0 && (
+              <div>
+                <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>
+                  Ubicación en mapa — arrastrá el marcador para ajustar
+                </label>
+                <MapPicker
+                  lat={form.lat} lng={form.lng} radius={form.radius_meters}
+                  onChange={(lat, lng) => setForm(f => ({ ...f, lat, lng }))}
+                />
+              </div>
+            )}
+
             {/* Radio con slider */}
             <div>
               <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>
                 Radio de detección
               </label>
               <input
-                type="range" min="50" max="300" step="50"
+                type="range" min="10" max="300" step="5"
                 value={form.radius_meters}
                 onChange={e => setForm(f => ({ ...f, radius_meters: parseInt(e.target.value) }))}
                 className="w-full accent-[#8296E3]"
               />
               <p className="text-xs mt-1" style={{ color: "#8296E3" }}>
-                {RADIUS_LABELS[form.radius_meters]}
+                {getRadiusLabel(form.radius_meters)}
               </p>
             </div>
 
@@ -446,14 +476,27 @@ export function AdminClient() {
                 )}
               </div>
 
+              {/* Mapa satelital */}
+              <div>
+                <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>
+                  Ubicación en mapa — arrastrá el marcador para ajustar
+                </label>
+                <MapPicker
+                  lat={editForm.lat || editingVenue.lat}
+                  lng={editForm.lng || editingVenue.lng}
+                  radius={editForm.radius_meters}
+                  onChange={(lat, lng) => setEditForm(f => ({ ...f, lat, lng }))}
+                />
+              </div>
+
               {/* Radio */}
               <div>
                 <label className="block text-xs mb-1.5 uppercase tracking-wider" style={labelStyle}>Radio de detección</label>
-                <input type="range" min="50" max="300" step="50"
+                <input type="range" min="10" max="300" step="5"
                   value={editForm.radius_meters}
                   onChange={e => setEditForm(f => ({ ...f, radius_meters: parseInt(e.target.value) }))}
                   className="w-full accent-[#8296E3]" />
-                <p className="text-xs mt-1" style={{ color: "#8296E3" }}>{RADIUS_LABELS[editForm.radius_meters]}</p>
+                <p className="text-xs mt-1" style={{ color: "#8296E3" }}>{getRadiusLabel(editForm.radius_meters)}</p>
               </div>
 
               {/* Horarios */}
