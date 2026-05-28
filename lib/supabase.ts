@@ -28,6 +28,7 @@ export interface Profile {
   id: string;
   username: string | null;
   ghost_mode: boolean;
+  role: string | null;
   name: string | null;
   age: number | null;
   email: string | null;

@@ -200,6 +200,16 @@ export function ProfileClient({ profileId, currentUserId }: Props) {
                 >
                   Cerrar sesión
                 </button>
+
+                {profile?.role === "superadmin" && (
+                  <a
+                    href="/admin"
+                    className="w-full py-3 rounded-xl text-sm font-semibold text-center block"
+                    style={{ background: "rgba(130,150,227,0.15)", border: "1px solid rgba(130,150,227,0.3)", color: "#8296E3" }}
+                  >
+                    ⚙️ Panel de administración
+                  </a>
+                )}
               </div>
             )}
           </div>
