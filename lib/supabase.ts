@@ -26,6 +26,7 @@ export type VenueInsert = Omit<Venue, "id" | "created_at">;
 
 export interface Profile {
   id: string;
+  username: string | null;
   name: string | null;
   age: number | null;
   email: string | null;
