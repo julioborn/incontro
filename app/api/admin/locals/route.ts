@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest) {
     const { id, ...updates } = body;
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const allowed = ["name", "address", "lat", "lng", "radius_meters", "open_days", "open_time", "close_time", "is_open", "zone"];
+    const allowed = ["name", "address", "lat", "lng", "radius_meters", "open_days", "open_time", "close_time", "is_open", "zone", "logo_url"];
     const safe = Object.fromEntries(Object.entries(updates).filter(([k]) => allowed.includes(k)));
 
     const { data, error } = await supabaseAdmin
@@ -61,11 +61,11 @@ export async function POST(req: NextRequest) {
     if (role !== "superadmin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json();
-    const { name, address, lat, lng, radius_meters, open_days, open_time, close_time, zone } = body;
+    const { name, address, lat, lng, radius_meters, open_days, open_time, close_time, zone, logo_url } = body;
 
     const { data, error } = await supabaseAdmin
       .from("venues")
-      .insert({ name, address, lat, lng, radius_meters: radius_meters ?? 100, open_days, open_time, close_time, zone: zone ?? null })
+      .insert({ name, address, lat, lng, radius_meters: radius_meters ?? 100, open_days, open_time, close_time, zone: zone ?? null, logo_url: logo_url ?? null })
       .select()
       .single();
 

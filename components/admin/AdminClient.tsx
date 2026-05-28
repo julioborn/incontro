@@ -43,6 +43,16 @@ interface NominatimResult {
   lon: string;
 }
 
+async function uploadVenueImage(file: File): Promise<string | null> {
+  const { supabaseClient } = await import("@/lib/supabase");
+  const ext = file.name.split(".").pop();
+  const path = `${Date.now()}.${ext}`;
+  const { error } = await supabaseClient.storage.from("venues").upload(path, file, { upsert: true });
+  if (error) { console.error(error); return null; }
+  const { data } = supabaseClient.storage.from("venues").getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export function AdminClient() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +66,10 @@ export function AdminClient() {
     name: "", address: "", lat: 0, lng: 0,
     radius_meters: 100, open_time: "22:00", close_time: "06:00",
     open_days: [] as string[], zone: null as [number,number][] | null,
+    logo_url: null as string | null,
   });
+  const [formImageFile, setFormImageFile] = useState<File | null>(null);
+  const [formImagePreview, setFormImagePreview] = useState<string | null>(null);
 
   // Buscador de dirección
   const [addressQuery, setAddressQuery] = useState("");
@@ -69,7 +82,10 @@ export function AdminClient() {
     name: "", address: "", lat: 0, lng: 0,
     radius_meters: 100, open_time: "22:00", close_time: "06:00",
     open_days: [] as string[], zone: null as [number,number][] | null,
+    logo_url: null as string | null,
   });
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [editAddressQuery, setEditAddressQuery] = useState("");
   const [editAddressResults, setEditAddressResults] = useState<NominatimResult[]>([]);
   const [searchingEditAddress, setSearchingEditAddress] = useState(false);
@@ -115,17 +131,21 @@ export function AdminClient() {
   async function handleCreate() {
     if (!form.name || !form.lat || !form.lng) return;
     setSaving(true);
+    let logo_url = form.logo_url;
+    if (formImageFile) logo_url = await uploadVenueImage(formImageFile);
     const res = await fetch("/api/admin/locals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, logo_url }),
     });
     const data = await res.json();
     if (data.id) {
       setVenues(v => [...v, data]);
       setShowForm(false);
-      setForm({ name: "", address: "", lat: 0, lng: 0, radius_meters: 100, open_time: "22:00", close_time: "06:00", open_days: [], zone: null });
+      setForm({ name: "", address: "", lat: 0, lng: 0, radius_meters: 100, open_time: "22:00", close_time: "06:00", open_days: [], zone: null, logo_url: null });
       setAddressQuery("");
+      setFormImageFile(null);
+      setFormImagePreview(null);
     }
     setSaving(false);
   }
@@ -142,9 +162,12 @@ export function AdminClient() {
       close_time: venue.close_time ?? "06:00",
       open_days: venue.open_days ?? [],
       zone: (venue.zone as [number,number][] | null) ?? null,
+      logo_url: venue.logo_url ?? null,
     });
     setEditAddressQuery(venue.address ?? "");
     setEditAddressResults([]);
+    setEditImageFile(null);
+    setEditImagePreview(venue.logo_url ?? null);
   }
 
   function onEditAddressInput(val: string) {
@@ -180,15 +203,19 @@ export function AdminClient() {
   async function handleSaveEdit() {
     if (!editingVenue) return;
     setSaving(true);
+    let logo_url = editForm.logo_url;
+    if (editImageFile) logo_url = await uploadVenueImage(editImageFile);
     const res = await fetch("/api/admin/locals", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editingVenue.id, ...editForm }),
+      body: JSON.stringify({ id: editingVenue.id, ...editForm, logo_url }),
     });
     const data = await res.json();
     if (data.id) {
       setVenues(v => v.map(venue => venue.id === data.id ? data : venue));
       setEditingVenue(null);
+      setEditImageFile(null);
+      setEditImagePreview(null);
     }
     setSaving(false);
   }
@@ -210,6 +237,37 @@ export function AdminClient() {
       setInviteEmail("");
     }
   }
+
+  const ImageUpload = ({
+    preview, onFile, label = "Imagen del local"
+  }: { preview: string | null; onFile: (f: File, url: string) => void; label?: string }) => (
+    <Field label={label}>
+      <label className="block cursor-pointer">
+        <input type="file" accept="image/*" className="hidden"
+          onChange={e => {
+            const f = e.target.files?.[0];
+            if (!f) return;
+            const url = URL.createObjectURL(f);
+            onFile(f, url);
+          }} />
+        {preview ? (
+          <div className="relative w-full h-36 rounded-2xl overflow-hidden group">
+            <img src={preview} alt="preview" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ background: "rgba(0,0,0,0.6)" }}>
+              <p className="text-white text-xs font-medium">Cambiar imagen</p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full h-24 rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors hover:border-[#8296E3]"
+            style={{ ...inputStyle, border: "1.5px dashed rgba(255,255,255,0.15)" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>Tocá para subir una foto</p>
+          </div>
+        )}
+      </label>
+    </Field>
+  );
 
   const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div>
@@ -269,6 +327,9 @@ export function AdminClient() {
               <div className="w-1 h-4 rounded-full" style={{ background: "linear-gradient(#8296E3, #4762C7)" }} />
               <p className="text-white text-sm font-semibold">Nuevo establecimiento</p>
             </div>
+
+            <ImageUpload preview={formImagePreview}
+              onFile={(file, url) => { setFormImageFile(file); setFormImagePreview(url); }} />
 
             <Field label="Nombre">
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
@@ -385,9 +446,15 @@ export function AdminClient() {
                   {/* Nombre + badge */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-base font-bold text-white"
-                        style={{ background: "linear-gradient(135deg, #8296E3, #4762C7)" }}>
-                        {venue.name[0].toUpperCase()}
+                      <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                        {venue.logo_url ? (
+                          <img src={venue.logo_url} alt={venue.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-base font-bold text-white"
+                            style={{ background: "linear-gradient(135deg, #8296E3, #4762C7)" }}>
+                            {venue.name[0].toUpperCase()}
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="text-white font-semibold text-sm truncate">{venue.name}</p>
@@ -492,6 +559,9 @@ export function AdminClient() {
             </div>
 
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
+              <ImageUpload preview={editImagePreview}
+                onFile={(file, url) => { setEditImageFile(file); setEditImagePreview(url); }} />
+
               <Field label="Nombre">
                 <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full px-4 py-3 rounded-2xl text-white text-sm outline-none"

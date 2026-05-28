@@ -99,9 +99,15 @@ export function HomeClient({ userId }: Props) {
                     style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
                     onClick={() => setViewingPeople(true)}
                   >
-                    <div className="h-28 flex items-center justify-center"
-                      style={{ background: "linear-gradient(135deg, rgba(130,150,227,0.25), rgba(71,98,199,0.25))" }}>
-                      <span className="text-5xl">🎉</span>
+                    <div className="h-36 overflow-hidden">
+                      {activeVenue.logo_url ? (
+                        <img src={activeVenue.logo_url} alt={activeVenue.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"
+                          style={{ background: "linear-gradient(135deg, rgba(130,150,227,0.2), rgba(71,98,199,0.2))" }}>
+                          <span className="text-5xl">🎉</span>
+                        </div>
+                      )}
                     </div>
                     <div className="p-4">
                       <div className="flex items-start justify-between">
