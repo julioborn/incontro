@@ -52,7 +52,9 @@ export async function POST(req: NextRequest) {
   let matched = false;
 
   if (reverseLike) {
-    // Buscar si ya existe el match
+    // Esperar brevemente para que el trigger tenga tiempo de crear el match
+    await new Promise(r => setTimeout(r, 400));
+
     const { data: existingMatch } = await supabaseAdmin
       .from("matches")
       .select("id")
@@ -64,36 +66,6 @@ export async function POST(req: NextRequest) {
     if (existingMatch) {
       matchId = existingMatch.id;
       matched = true;
-    } else {
-      // El trigger debería haberlo creado — si no, lo creamos acá como fallback
-      const { data: venue } = await supabaseAdmin
-        .from("venues")
-        .select("close_time")
-        .eq("id", venue_id)
-        .single();
-
-      const expires = venue?.close_time
-        ? new Date(`${new Date().toDateString()} ${venue.close_time}`).toISOString()
-        : null;
-
-      const { data: newMatch } = await supabaseAdmin
-        .from("matches")
-        .insert({
-          user_a: uid,
-          user_b: to_user,
-          venue_id,
-          expires_at: expires,
-          is_active: true,
-          new_for_a: true,
-          new_for_b: true,
-        })
-        .select("id")
-        .single();
-
-      if (newMatch) {
-        matchId = newMatch.id;
-        matched = true;
-      }
     }
   }
 
