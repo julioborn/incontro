@@ -9,7 +9,7 @@ import { supabaseClient } from "@/lib/supabase";
 interface Props { userId: string }
 
 export function HomeClient({ userId }: Props) {
-  const { isInsideVenue, activeVenue, error, isLoading } = useGeolocation(userId);
+  const { isInsideVenue, activeVenue, error, isLoading, distance } = useGeolocation(userId);
   const { presences, totalCount } = usePresence(isInsideVenue && activeVenue ? activeVenue.id : null, userId);
   const [viewingPeople, setViewingPeople] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
