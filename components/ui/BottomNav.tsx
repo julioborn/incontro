@@ -56,8 +56,8 @@ export function BottomNav() {
 
   const ITEMS = [
     { href: "/home",       label: "Inicio",   Icon: HomeIcon,    badge: 0 },
-    { href: "/matches",    label: "Likes",    Icon: LikeIcon,    badge: newMatches },
-    { href: "/chats",      label: "Mensajes", Icon: ChatIcon,    badge: newMessages },
+    { href: "/matches",    label: "Likes",    Icon: LikeIcon,    badge: newMatches || 0 },
+    { href: "/chats",      label: "Mensajes", Icon: ChatIcon,    badge: newMessages || 0 },
     { href: "/profile/me", label: "Perfil",   Icon: ProfileIcon, badge: 0 },
   ];
 
@@ -69,42 +69,36 @@ export function BottomNav() {
         return (
           <Link key={href} href={href}
             className="flex flex-col items-center justify-center gap-1 flex-1 h-full transition-all"
-            style={{ color: active ? "#8296E3" : "rgba(255,255,255,0.35)", position: "relative" }}>
-            <Icon filled={active} />
+            style={{ color: active ? "#8296E3" : "rgba(255,255,255,0.35)" }}>
+            {/* Wrapper del ícono con tamaño fijo para anclar el badge */}
+            <span style={{ position: "relative", display: "inline-flex", width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+              <Icon filled={active} />
+              {badge > 0 && (
+                <span style={{
+                  position: "absolute",
+                  top: -6,
+                  right: -8,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  background: "#FF3B30",
+                  border: "2px solid #000",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: "#fff",
+                  padding: "0 4px",
+                  lineHeight: 1,
+                  zIndex: 50,
+                }}>
+                  {badge > 9 ? "9+" : badge}
+                </span>
+              )}
+            </span>
             {active && (
-              <span style={{
-                position: "absolute",
-                bottom: "8px",
-                left: "50%",
-                transform: "translateX(-50%)",
-                width: "4px", height: "4px",
-                borderRadius: "50%",
-                background: "#8296E3",
-              }} />
-            )}
-            {badge > 0 && (
-              <span style={{
-                position: "absolute",
-                top: "8px",
-                left: "calc(50% + 6px)",
-                minWidth: "18px",
-                height: "18px",
-                borderRadius: "9px",
-                background: "#FF3B30",
-                border: "2px solid #000",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "10px",
-                fontWeight: "800",
-                color: "#fff",
-                padding: "0 4px",
-                lineHeight: "1",
-                zIndex: 20,
-                pointerEvents: "none",
-              }}>
-                {badge > 9 ? "9+" : badge}
-              </span>
+              <span style={{ width: 4, height: 4, borderRadius: "50%", background: "#8296E3", marginTop: -2 }} />
             )}
             <span className="text-[10px] font-medium tracking-wide" style={{ opacity: active ? 1 : 0.7 }}>
               {label}
