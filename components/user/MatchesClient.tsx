@@ -16,12 +16,12 @@ interface MatchRow {
   user_a_profile: MatchProfile; user_b_profile: MatchProfile;
 }
 
-interface Props { userId: string }
+interface Props { userId: string; defaultTab?: "matches" | "chats" }
 
-export function MatchesClient({ userId }: Props) {
+export function MatchesClient({ userId, defaultTab = "matches" }: Props) {
   const [matches, setMatches] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"matches" | "chats">("matches");
+  const [tab, setTab] = useState<"matches" | "chats">(defaultTab);
 
   useEffect(() => {
     fetch("/api/matches")
@@ -63,13 +63,15 @@ export function MatchesClient({ userId }: Props) {
     <div className="flex flex-col min-h-screen bg-black">
       {/* Header */}
       <header className="px-5 pt-12 pb-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <h1 className="text-xl font-bold text-white mb-4">Actividad</h1>
+        <h1 className="text-xl font-bold text-white mb-4">
+          {tab === "matches" ? "Likes" : "Mensajes"}
+        </h1>
 
         {/* Tabs */}
         <div className="flex gap-1">
           {[
-            { key: "matches", label: "Matches", count: newMatchesCount },
-            { key: "chats",   label: "Chats",   count: newMessagesCount },
+            { key: "matches", label: "Likes",    count: newMatchesCount },
+            { key: "chats",   label: "Mensajes", count: newMessagesCount },
           ].map(({ key, label, count }) => (
             <button key={key}
               onClick={() => setTab(key as "matches" | "chats")}
