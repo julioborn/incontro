@@ -39,14 +39,63 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: likeError.message }, { status: 500 });
   }
 
-  // Verificar si se creó match (trigger lo hace automáticamente)
-  const { data: match } = await supabaseAdmin
-    .from("matches")
+  // Verificar si existe like inverso (match mutuo)
+  const { data: reverseLike } = await supabaseAdmin
+    .from("likes")
     .select("id")
-    .or(`and(user_a.eq.${uid},user_b.eq.${to_user}),and(user_a.eq.${to_user},user_b.eq.${uid})`)
+    .eq("from_user", to_user)
+    .eq("to_user", uid)
     .eq("venue_id", venue_id)
-    .eq("is_active", true)
     .maybeSingle();
 
-  return NextResponse.json({ liked: true, matched: !!match, matchId: match?.id ?? null });
+  let matchId: string | null = null;
+  let matched = false;
+
+  if (reverseLike) {
+    // Buscar si ya existe el match
+    const { data: existingMatch } = await supabaseAdmin
+      .from("matches")
+      .select("id")
+      .or(`and(user_a.eq.${uid},user_b.eq.${to_user}),and(user_a.eq.${to_user},user_b.eq.${uid})`)
+      .eq("venue_id", venue_id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (existingMatch) {
+      matchId = existingMatch.id;
+      matched = true;
+    } else {
+      // El trigger debería haberlo creado — si no, lo creamos acá como fallback
+      const { data: venue } = await supabaseAdmin
+        .from("venues")
+        .select("close_time")
+        .eq("id", venue_id)
+        .single();
+
+      const expires = venue?.close_time
+        ? new Date(`${new Date().toDateString()} ${venue.close_time}`).toISOString()
+        : null;
+
+      const { data: newMatch } = await supabaseAdmin
+        .from("matches")
+        .insert({
+          user_a: uid,
+          user_b: to_user,
+          venue_id,
+          expires_at: expires,
+          is_active: true,
+          new_for_a: true,
+          new_for_b: true,
+        })
+        .select("id")
+        .single();
+
+      if (newMatch) {
+        matchId = newMatch.id;
+        matched = true;
+      }
+    }
+  }
+
+  return NextResponse.json({ liked: true, matched, matchId });
 }
