@@ -12,7 +12,7 @@ interface MatchProfile {
 
 interface MatchRow {
   id: string; user_a: string; user_b: string;
-  has_new_message: boolean;
+  unread_for_a: boolean; unread_for_b: boolean;
   user_a_profile: MatchProfile; user_b_profile: MatchProfile;
 }
 
@@ -68,7 +68,7 @@ export function ChatsClient({ userId }: { userId: string }) {
               const other = getOther(match);
               const displayName = other?.name ?? other?.first_name ?? "Usuario";
               const initial = displayName[0]?.toUpperCase() ?? "?";
-              const hasNew = match.has_new_message;
+              const hasNew = match.user_a === userId ? match.unread_for_a : match.unread_for_b;
 
               return (
                 <Link key={match.id} href={`/chat/${match.id}`}

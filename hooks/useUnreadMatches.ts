@@ -12,18 +12,23 @@ export function useUnreadMatches(userId: string | null) {
     const fetchCounts = async () => {
       const { data } = await supabaseClient
         .from("matches")
-        .select("user_a, new_for_a, new_for_b, has_new_message")
+        .select("user_a, new_for_a, new_for_b, unread_for_a, unread_for_b")
         .or(`user_a.eq.${userId},user_b.eq.${userId}`)
         .eq("is_active", true);
 
       if (!data) return;
 
+      // Badge Likes: matches nuevos no vistos
       const matches = data.filter(m =>
-        (m.user_a === userId && m.new_for_a) ||
-        (m.user_a !== userId && m.new_for_b)
+        (m.user_a === userId && m.new_for_a === true) ||
+        (m.user_a !== userId && m.new_for_b === true)
       ).length;
 
-      const messages = data.filter(m => m.has_new_message).length;
+      // Badge Mensajes: mensajes sin leer donde YO soy el receptor
+      const messages = data.filter(m =>
+        (m.user_a === userId && m.unread_for_a === true) ||
+        (m.user_a !== userId && m.unread_for_b === true)
+      ).length;
 
       setNewMatches(matches);
       setNewMessages(messages);
