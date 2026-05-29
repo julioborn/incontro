@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { supabaseClient } from "@/lib/supabase";
 import type { Profile } from "@/lib/supabase";
+import { CityInput } from "@/components/ui/CityInput";
 
 const MUSIC_GENRES = [
   "Electrónica", "Reggaeton", "Cumbia", "Trap", "House",
@@ -240,9 +241,10 @@ export function SettingsClient({ userId }: { userId: string }) {
               style={inp} />
           </Field>
           <Field label="Ciudad">
-            <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-              placeholder="Ej: Buenos Aires" className="w-full px-4 py-3 rounded-2xl text-white text-sm outline-none"
-              style={inp} />
+            <CityInput
+              value={form.city}
+              onChange={val => setForm(f => ({ ...f, city: val }))}
+            />
           </Field>
           <Field label="Género">
             <div className="grid grid-cols-3 gap-2">
