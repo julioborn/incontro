@@ -56,14 +56,14 @@ export function BottomNav() {
 
   const ITEMS = [
     { href: "/home",       label: "Inicio",   Icon: HomeIcon,    badge: 0 },
-    { href: "/matches",    label: "Likes",    Icon: LikeIcon,    badge: newMatches || 0 },
-    { href: "/chats",      label: "Mensajes", Icon: ChatIcon,    badge: newMessages || 0 },
+    { href: "/matches",    label: "Likes",    Icon: LikeIcon,    badge: newMatches || 3 },
+    { href: "/chats",      label: "Mensajes", Icon: ChatIcon,    badge: newMessages || 2 },
     { href: "/profile/me", label: "Perfil",   Icon: ProfileIcon, badge: 0 },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 flex items-center justify-around px-2 pb-safe"
-      style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(255,255,255,0.06)", height: "64px" }}>
+      style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(24px)", borderTop: "1px solid rgba(255,255,255,0.06)", height: "64px", overflow: "visible" }}>
       {ITEMS.map(({ href, label, Icon, badge }) => {
         const active = path.startsWith(href);
         return (
