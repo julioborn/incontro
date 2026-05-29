@@ -30,7 +30,13 @@ export function MatchesClient({ userId }: Props) {
   useEffect(() => {
     fetch("/api/matches")
       .then(r => r.json())
-      .then(d => { setMatches(Array.isArray(d) ? d : []); setLoading(false); });
+      .then(d => {
+        setMatches(Array.isArray(d) ? d : []);
+        setLoading(false);
+      });
+
+    // Marcar todos los matches como vistos para este usuario
+    fetch("/api/matches/seen", { method: "POST" });
   }, []);
 
   function getOtherProfile(match: MatchRow): MatchProfile {

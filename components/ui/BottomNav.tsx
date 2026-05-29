@@ -1,6 +1,17 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUnreadMatches } from "@/hooks/useUnreadMatches";
+import { supabaseClient } from "@/lib/supabase";
+import { useEffect, useState } from "react";
+
+function useCurrentUserId() {
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabaseClient.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+  }, []);
+  return userId;
+}
 
 const HomeIcon = ({ filled }: { filled: boolean }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -46,6 +57,8 @@ const ITEMS = [
 
 export function BottomNav() {
   const path = usePathname();
+  const userId = useCurrentUserId();
+  const unreadMatches = useUnreadMatches(userId);
 
   return (
     <nav
@@ -69,10 +82,13 @@ export function BottomNav() {
             <div className="relative flex items-center justify-center">
               <Icon filled={active} />
               {active && (
-                <span
-                  className="absolute -bottom-1 w-1 h-1 rounded-full"
-                  style={{ background: "#8296E3" }}
-                />
+                <span className="absolute -bottom-1 w-1 h-1 rounded-full" style={{ background: "#8296E3" }} />
+              )}
+              {href === "/matches" && unreadMatches > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white px-1"
+                  style={{ background: "#FF3B30" }}>
+                  {unreadMatches > 9 ? "9+" : unreadMatches}
+                </span>
               )}
             </div>
             <span
