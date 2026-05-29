@@ -42,3 +42,10 @@ button, a, [role="button"], label[for], label.cursor-pointer {
 /* Safe area for PWA */
 .safe-top    { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+@keyframes matchPulse {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
