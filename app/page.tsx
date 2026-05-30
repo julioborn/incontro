@@ -11,7 +11,7 @@ export default async function RootPage() {
     <main className="flex flex-col items-center justify-center min-h-screen bg-black px-6">
       <div className="flex flex-col items-center gap-8 animate-fade-in">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/iconofinal.png" alt="Incontro" width={96} height={96} className="rounded-2xl" priority />
+          <Image src="/iconofinal.png" alt="Insitus" width={96} height={96} className="rounded-2xl" priority />
           <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-libre-baskerville)", fontStyle:"italic" }}>INCONTRO</h1>
           <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
             Conectate con quienes están en el mismo lugar que vos.

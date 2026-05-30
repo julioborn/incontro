@@ -30,7 +30,7 @@ export function HomeClient({ userId }: Props) {
   return (
     <div className="flex flex-col min-h-screen bg-black">
       <header className="flex items-center justify-between px-5 pt-12 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <span className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-libre-baskerville)" }}>Incontro</span>
+        <span className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-libre-baskerville)" }}>Insitus</span>
         <div className="flex items-center gap-2">
           {ghostMode && (
             <span className="text-[11px] px-2.5 py-1 rounded-full font-medium"

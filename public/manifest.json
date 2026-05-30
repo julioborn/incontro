@@ -1,6 +1,6 @@
 {
-  "name": "Incontro",
-  "short_name": "Incontro",
+  "name": "Insitus",
+  "short_name": "Insitus",
   "description": "Conectate con quienes están en el mismo lugar que vos.",
   "start_url": "/",
   "display": "standalone",

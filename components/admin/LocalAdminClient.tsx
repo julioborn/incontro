@@ -70,7 +70,7 @@ export function LocalAdminClient({ venue: initialVenue, userId }: Props) {
     <div className="flex flex-col min-h-screen bg-black pb-10">
       <header className="flex items-center justify-between px-5 pt-12 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <div className="flex items-center gap-3">
-          <Image src="/iconofinal.png" alt="Incontro" width={28} height={28} className="rounded-lg" />
+          <Image src="/iconofinal.png" alt="Insitus" width={28} height={28} className="rounded-lg" />
           <div>
             <p className="text-white/40 text-xs">Mi establecimiento</p>
             <h1 className="text-base font-bold text-white leading-tight">{venue.name}</h1>

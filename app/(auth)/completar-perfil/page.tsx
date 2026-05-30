@@ -69,7 +69,7 @@ export default function CompletarPerfilPage() {
     <main className="flex flex-col items-center justify-center min-h-screen bg-black px-6 py-12">
       <div className="w-full max-w-sm animate-fade-in">
         <div className="flex flex-col items-center mb-8">
-          <Image src="/iconofinal.png" alt="Incontro" width={56} height={56} className="rounded-xl mb-4" />
+          <Image src="/iconofinal.png" alt="Insitus" width={56} height={56} className="rounded-xl mb-4" />
           <h1 className="text-2xl font-bold tracking-[0.15em] text-white">Completá tu perfil</h1>
           <p className="mt-1 text-xs text-center" style={labelStyle}>
             Solo necesitamos un par de datos más.

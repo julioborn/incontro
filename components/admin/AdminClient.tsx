@@ -296,7 +296,7 @@ export function AdminClient() {
             </div>
             <div>
               <h1 className="text-base font-bold text-white leading-tight">Panel Admin</h1>
-              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Incontro</p>
+              <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Insitus</p>
             </div>
           </div>
           <Link href="/home"

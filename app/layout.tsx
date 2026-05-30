@@ -12,20 +12,20 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "Incontro",
+  title: "Insitus",
   description: "Conectate con quienes están en el mismo lugar que vos.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Incontro",
+    title: "Insitus",
   },
   icons: {
     icon: "/iconofinal.png",
     apple: "/iconofinal.png",
   },
   openGraph: {
-    title: "Incontro",
+    title: "Insitus",
     description: "Conectate con quienes están en el mismo lugar que vos.",
     type: "website",
   },
